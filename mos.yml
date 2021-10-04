@@ -18,6 +18,5 @@ libs:
   - origin: https://github.com/mongoose-os-libs/homeassistant
   - origin: https://github.com/mongoose-os-libs/jstore
   - origin: https://github.com/mongoose-os-libs/mqtt
-  - origin: https://github.com/mongoose-os-libs/rpc-common
   - {origin: https://github.com/QRPp/mgos-itemp, name: itemp}
   - {origin: https://github.com/QRPp/mgos-helpers, name: helpers}

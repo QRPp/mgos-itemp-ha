@@ -1,5 +1,3 @@
-#define CONF_ON_BOOT 1
-
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -12,9 +10,6 @@
 #include <mgos-cc1101.h>
 #include <mgos-helpers/log.h>
 #include <mgos-helpers/mem.h>
-#if !CONF_ON_BOOT
-#include <mgos-helpers/rpc.h>
-#endif
 #include <mgos-helpers/time.h>
 #include <mgos-helpers/tmr.h>
 #include <mgos-itemp.h>
@@ -217,14 +212,14 @@ static bool ith_tmr_restart(struct itemp_ha *ith) {
 #define OBJ_STAT_TPL_BEGIN "{{value_json."
 #define OBJ_STAT_TPL_END "}}"
 #define OBJ_T_TPL_FMT ",\"%s%s\":%Q,\"%s%s\":\"%s%s%s\""
-static bool obj_from_json(struct mgos_homeassistant *ha,
-                          const struct json_token *v) {
+static bool ith_obj_fromjson(struct mgos_homeassistant *ha,
+                             struct json_token v) {
   struct itemp_ha *ith = NULL;
   bool ok = false;
   char *name = NULL, *src_s = NULL, *temp_path = NULL, *temp_t = NULL,
        *temp_tpl = NULL;
   int src_sz;
-  json_scanf(v->ptr, v->len, OBJ_ARG_FMT, &name, &src_sz, &src_s, &temp_path,
+  json_scanf(v.ptr, v.len, OBJ_ARG_FMT, &name, &src_sz, &src_s, &temp_path,
              &temp_t, &temp_tpl);
   if (!src_s) FNERR_GT("%s is required", "src");
   if (src_sz != 3) FNERR_GT("src must be 3 bytes long");
@@ -276,46 +271,10 @@ err:
   return ok;
 }
 
-#define HA_CONF_PATH ".provider.itemp"
-static void read_conf(struct mgos_homeassistant *ha, const char *s, size_t sz) {
-  void *h = NULL;
-  int i;
-  struct json_token v;
-  while ((h = json_next_elem(s, sz, h, HA_CONF_PATH, &i, &v)) != NULL) {
-    if (i < 0) FNERR_RET(, "error parsing JSON from %s", HA_CONF_PATH);
-    if (!obj_from_json(ha, &v))
-      FNERR("error creating obj %d from JSON: %.*s", i, v.len, v.ptr);
-  }
-}
-
-static bool ith_conf() {
-  TRY_RETF(jstore_open);
-  const char *fn = mgos_sys_config_get_homeassistant_config();
-  char *json = json_fread(fn);
-  if (!json) FNERR_RETF("%s: error reading JSON", fn);
-  read_conf(mgos_homeassistant_get_global(), json, strlen(json));
-  free(json);
-  jstore_save(NULL);
-  return true;
-}
-
-#if !CONF_ON_BOOT
-static void itemp_ha_conf_handler(struct mg_rpc_request_info *ri, void *cb_arg,
-                                  struct mg_rpc_frame_info *fi,
-                                  struct mg_str args) {
-  if (!ith_conf()) mg_rpc_errorf_ret(500, CALL_FAILED(ith_conf));
-  mg_rpc_send_responsef(ri, NULL);
-}
-#endif
-
 bool mgos_itemp_ha_init(void) {
-  if (!mgos_sys_config_get_homeassistant_enable()) return true;
   if (!mgos_sys_config_get_itemp_ha_enable()) return true;
-#if CONF_ON_BOOT
-  ith_conf();
-#else
-  mg_rpc_add_handler(mgos_rpc_get_global(), "iTemp.HaConf", "",
-                     itemp_ha_conf_handler, NULL);
-#endif
+  TRY_RETF(jstore_open);
+  TRY_RETF(mgos_homeassistant_register_provider, "itemp", ith_obj_fromjson,
+           NULL);
   return true;
 }
