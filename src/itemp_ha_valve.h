@@ -63,7 +63,7 @@ static void ith_valve_update(struct itemp_ha *ith, bool force) {
           mgos_sys_config_get_itemp_ha_delay() * 1000, 0, ith_valve_cmd, ith);
 }
 
-#define ITH_TEMP_HYST 1
+#define ITH_TEMP_HYST 0.5
 static bool ith_valve_eval(struct itemp_ha *ith) {
   bool ret;
   if (isnan(ith->last.temp))         // Temp stale
@@ -73,7 +73,8 @@ static bool ith_valve_eval(struct itemp_ha *ith) {
     if (diff > ITH_TEMP_HYST)  // Too hot?
       ret = ith_valve_off(ith);
     else
-      ret = ith_valve_on(ith, diff < -ITH_TEMP_HYST);  // Need heat if too cold
+      ret = ith_valve_on(  // Heat till hyst above, delay heat till hyst below
+          ith, diff < (ith->st.mode ? ITH_TEMP_HYST : -ITH_TEMP_HYST));
   }
   ith_valve_update(ith, false);
   return ret;
