@@ -70,11 +70,9 @@ static bool ith_valve_eval(struct itemp_ha *ith) {
     ret = ith_valve_on(ith, false);  // Set target temp, need no heat
   else {
     float diff = ith->last.temp - ith->st.temp;
-    if (diff > ITH_TEMP_HYST)  // Too hot?
-      ret = ith_valve_off(ith);
-    else
-      ret = ith_valve_on(  // Heat till hyst above, delay heat till hyst below
-          ith, diff < (ith->st.mode ? ITH_TEMP_HYST : -ITH_TEMP_HYST));
+    float thr = ith->st.mode ? ITH_TEMP_HYST    // Heat till hyst above,
+                             : -ITH_TEMP_HYST;  // delay heat till hyst below
+    ret = diff > thr ? ith_valve_off(ith) : ith_valve_on(ith, true);
   }
   ith_valve_update(ith, false);
   return ret;
