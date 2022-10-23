@@ -200,9 +200,9 @@ static bool ith_tmr_restart(struct itemp_ha *ith) {
 #define OBJ_CMD_T "~/cmd"
 #define OBJ_CMD_TPL_BEGIN "{{\{'"
 #define OBJ_CMD_TPL_END "':value}|to_json}}"
-#define OBJ_JSON_FMT                                       \
-  "temp_unit:%Q,temp_step:0.5,min_temp:%.1f,max_temp:%.1f" \
-  ",curr_temp_t:%Q,curr_temp_tpl:%Q,modes:[heat,off]"      \
+#define OBJ_JSON_FMT                                             \
+  "ic:%Q,temp_unit:%Q,temp_step:0.5,min_temp:%.1f,max_temp:%.1f" \
+  ",curr_temp_t:%Q,curr_temp_tpl:%Q,modes:[heat,off]"            \
   ",json_attr_t:%Q,json_attr_tpl:\"%s%s%s\""
 #define OBJ_JSON_TPL_MID "attr|tojson"
 #define OBJ_STAT(stat)                                             \
@@ -241,9 +241,10 @@ static bool ith_obj_fromjson(struct mgos_homeassistant *ha,
   const size_t json_sz = 1024;
   char *json = alloca(json_sz);
   struct json_out jout = JSON_OUT_BUF(json, json_sz);
-  json_printf(&jout, OBJ_JSON_FMT, "C", (float) ITHT_MIN, (float) ITHT_MAX,
-              temp_t, temp_tpl ?: OBJ_ARG_TEMP_TPL_DFLT, OBJ_STAT_T,
-              OBJ_STAT_TPL_BEGIN, OBJ_JSON_TPL_MID, OBJ_STAT_TPL_END);
+  json_printf(&jout, OBJ_JSON_FMT, "mdi:radiator", "C", (float) ITHT_MIN,
+              (float) ITHT_MAX, temp_t, temp_tpl ?: OBJ_ARG_TEMP_TPL_DFLT,
+              OBJ_STAT_T, OBJ_STAT_TPL_BEGIN, OBJ_JSON_TPL_MID,
+              OBJ_STAT_TPL_END);
   json_printf(&jout, OBJ_STAT(mode));
   json_printf(&jout, OBJ_CMD(temp));
   json_printf(&jout, OBJ_STAT(temp));
