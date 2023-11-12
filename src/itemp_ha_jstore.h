@@ -6,24 +6,21 @@ static mgos_timer_id jstore_tmr_id = MGOS_INVALID_TIMER_ID;
 
 static bool jstore_open() {
   if (jstore) return true;
-  const char *ihsf = mgos_sys_config_get_itemp_ha_state();
   char *err;
-  jstore = mgos_jstore_create(ihsf, &err);
+  jstore = mgos_jstore_create(cfg->state, &err);
   if (jstore) return true;
-  FNERR_JS_RETF("%s(%s): %s", "mgos_jstore_create", ihsf, err);
+  FNERR_JS_RETF("%s(%s): %s", "mgos_jstore_create", cfg->state, err);
 }
 
 static void jstore_save(void *opaque) {
   jstore_tmr_id = MGOS_INVALID_TIMER_ID;
   char *err;
-  const char *ihsf = mgos_sys_config_get_itemp_ha_state();
-  if (!mgos_jstore_save(jstore, ihsf, &err))
-    FNERR_JS("%s(%s): %s", "mgos_jstore_save", ihsf, err);
+  if (!mgos_jstore_save(jstore, cfg->state, &err))
+    FNERR_JS("%s(%s): %s", "mgos_jstore_save", cfg->state, err);
 }
 
 static void jstore_save_delayed() {
   if (jstore_tmr_id) mgos_clear_timer(jstore_tmr_id);
-  jstore_tmr_id = mgos_set_timer(mgos_sys_config_get_itemp_ha_delay() * 1000, 0,
-                                 jstore_save, NULL);
+  jstore_tmr_id = mgos_set_timer(cfg->delay * 1000, 0, jstore_save, NULL);
   if (!jstore_tmr_id) FNERR(CALL_FAILED(mgos_set_timer));
 }

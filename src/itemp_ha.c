@@ -14,6 +14,8 @@
 #include <mgos-helpers/tmr.h>
 #include <mgos-itemp.h>
 
+static const struct mgos_config_itemp_ha *cfg;
+
 struct num_mqtt {
   const char *path;
   float val;
@@ -207,8 +209,7 @@ static void ith_tmr(void *opaque) {
 }
 
 static bool ith_tmr_restart(struct itemp_ha *ith) {
-  TRY_RETF(MGOS_TMR_RESET, ith->tmr,
-           mgos_sys_config_get_itemp_ha_period() * 1000,
+  TRY_RETF(MGOS_TMR_RESET, ith->tmr, cfg->period * 1000,
            MGOS_TIMER_REPEAT | MGOS_TIMER_RUN_NOW, ith_tmr, ith);
   return true;
 }
@@ -295,7 +296,7 @@ err:
 }
 
 bool mgos_itemp_ha_init(void) {
-  const struct mgos_config_itemp_ha *cfg = mgos_sys_config_get_itemp_ha();
+  cfg = mgos_sys_config_get_itemp_ha();
   if (!cfg->enable) return true;
   TRY_RETF(jstore_open);
   TRY_RETF(mgos_homeassistant_register_provider, "itemp", ith_obj_fromjson,

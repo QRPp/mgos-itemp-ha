@@ -59,8 +59,8 @@ static bool ith_valve_too_old(const struct itemp_ha *ith) {
 static void ith_valve_update(struct itemp_ha *ith, bool force) {
   MGOS_TMR_CLR(ith->valve.tmr);
   if (!force && ith->valve.new == ith->valve.now) return;
-  TRY_RET(, MGOS_TMR_SET, ith->valve.tmr,
-          mgos_sys_config_get_itemp_ha_delay() * 1000, 0, ith_valve_cmd, ith);
+  TRY_RET(, MGOS_TMR_SET, ith->valve.tmr, cfg->delay * 1000, 0, ith_valve_cmd,
+          ith);
 }
 
 #define ITH_TEMP_HYST 0.5
