@@ -63,15 +63,13 @@ static void ith_valve_update(struct itemp_ha *ith, bool force) {
           ith);
 }
 
-#define ITH_TEMP_HYST 0.5
 static bool ith_valve_eval(struct itemp_ha *ith) {
   bool ret;
   if (isnan(ith->last.temp))         // Temp stale
     ret = ith_valve_on(ith, false);  // Set target temp, need no heat
   else {
     float diff = ith->last.temp - ith->st.temp;
-    float thr = ith->st.mode ? ITH_TEMP_HYST    // Heat till hyst above,
-                             : -ITH_TEMP_HYST;  // delay heat till hyst below
+    float thr = ith->st.mode ? cfg->hyst_above : -cfg->hyst_below;
     ret = diff <= thr                        ? ith_valve_on(ith, true)
           : ith_free_heat_C > ith->last.temp ? ith_valve_on(ith, false)
                                              : ith_valve_off(ith);

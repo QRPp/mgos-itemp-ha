@@ -14,6 +14,8 @@ config_schema:
   - ["itemp.ha.free_heat", "o", {"title": "Temperature of heat that may go to waste"}]
   - ["itemp.ha.free_heat.t", "s", "", {"title": "MQTT topic holding temperature"}]
   - ["itemp.ha.free_heat.tpl", "s", ".temperature", {"title": "°C value JSON path"}]
+  - ["itemp.ha.hyst_above", "f", 0.5, {"title": "Heat till this above target"}]
+  - ["itemp.ha.hyst_below", "f", 0.5, {"title": "Delay heat till this below target"}]
   - ["itemp.ha.period", "i", 60, {"title": "Seconds between status updates"}]
   - ["itemp.ha.state", "s", "itemp-ha-state.json", {"title": "Persist state here"}]
 
