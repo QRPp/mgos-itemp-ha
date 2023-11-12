@@ -14,6 +14,23 @@
 #include <mgos-helpers/tmr.h>
 #include <mgos-itemp.h>
 
+struct num_mqtt {
+  const char *path;
+  float val;
+};
+
+static void num_mqtt_cb(void *ud, const char *name, size_t name_len,
+                        const char *path, const struct json_token *token) {
+  struct num_mqtt *inm = ud;
+  if (token->type != JSON_TYPE_NUMBER || strcmp(path, inm->path)) return;
+  inm->val = atof(token->ptr);
+}
+
+static void num_mqtt(const char *msg, int msg_len, void *ud) {
+  if (json_walk(msg, msg_len, num_mqtt_cb, ud) < 0)
+    FNERR_RET(, CALL_FAILED(json_walk));
+}
+
 #define ITHV(temp) ((int) (temp * 2))
 #define ITHT(temp) (temp / 2.0)
 
@@ -60,6 +77,16 @@ struct itemp_ha {
     int64_t when;       // Last RF command timestamp
   } valve;
 };
+
+static float ith_free_heat_C = NAN;  // Temperature of heat that may go to waste
+
+static void ith_free_heat_mqtt(struct mg_connection *nc, const char *topic,
+                               int topic_len, const char *msg, int msg_len,
+                               void *ud) {
+  struct num_mqtt inm = {.path = ud, .val = NAN};
+  num_mqtt(msg, msg_len, &inm);
+  ith_free_heat_C = inm.val;
+}
 
 #define ITH_TEMP_AGE_MAX 600
 static bool ith_last_too_old(const struct itemp_ha *ith) {
@@ -160,19 +187,14 @@ static bool ith_last_set(struct itemp_ha *ith, float temp) {
   return ith_valve_eval(ith);
 }
 
-static void ith_temp_mqtt_cb(void *ud, const char *name, size_t name_len,
-                             const char *path, const struct json_token *token) {
-  struct itemp_ha *ith = ud;
-  if (token->type != JSON_TYPE_NUMBER || strcmp(path, ith->last.path)) return;
-  if (ith_last_set(ith, atof(token->ptr))) ith_tmr_restart(ith);
-}
-
-static void ith_temp_mqtt(struct mg_connection *nc, const char *topic,
+static void ith_last_mqtt(struct mg_connection *nc, const char *topic,
                           int topic_len, const char *msg, int msg_len,
                           void *ud) {
   struct itemp_ha *ith = ud;
-  if (json_walk(msg, msg_len, ith_temp_mqtt_cb, ith) < 0)
-    FNERR_RET(, CALL_FAILED(json_walk));
+  struct num_mqtt inm = {.path = ith->last.path, .val = NAN};
+  num_mqtt(msg, msg_len, &inm);
+  if (isnan(inm.val)) return;
+  if (ith_last_set(ith, inm.val)) ith_tmr_restart(ith);
 }
 
 static void ith_tmr(void *opaque) {
@@ -255,7 +277,7 @@ static bool ith_obj_fromjson(struct mgos_homeassistant *ha,
   TRY_GT(mgos_homeassistant_object_add_cmd_cb, ith->o, NULL, ith_cmd);
   ith->o->config_sent = false;
   TRY_GT(ith_tmr_restart, ith);
-  mgos_mqtt_sub(temp_t, ith_temp_mqtt, ith);
+  mgos_mqtt_sub(temp_t, ith_last_mqtt, ith);
   ith->valve.now = ITHV_MAX;
   ith->valve.when = 0;
   ith_valve_eval(ith);
@@ -273,9 +295,13 @@ err:
 }
 
 bool mgos_itemp_ha_init(void) {
-  if (!mgos_sys_config_get_itemp_ha_enable()) return true;
+  const struct mgos_config_itemp_ha *cfg = mgos_sys_config_get_itemp_ha();
+  if (!cfg->enable) return true;
   TRY_RETF(jstore_open);
   TRY_RETF(mgos_homeassistant_register_provider, "itemp", ith_obj_fromjson,
            NULL);
+  const struct mgos_config_itemp_ha_free_heat *ft = &cfg->free_heat;
+  if (ft->t && *ft->t && ft->tpl)
+    mgos_mqtt_sub(ft->t, ith_free_heat_mqtt, (void *) cfg->free_heat.tpl);
   return true;
 }

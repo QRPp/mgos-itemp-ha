@@ -11,6 +11,9 @@ config_schema:
   - ["itemp.ha", "o", {"title": "Terrier i-temp i30/i35 PRC Home Assistant settings"}]
   - ["itemp.ha.delay", "i", 5, {"title": "Seconds before sending real RF commands"}]
   - ["itemp.ha.enable", "b", false, {"title": "Enable Home Assistant MQTT comms"}]
+  - ["itemp.ha.free_heat", "o", {"title": "Temperature of heat that may go to waste"}]
+  - ["itemp.ha.free_heat.t", "s", "", {"title": "MQTT topic holding temperature"}]
+  - ["itemp.ha.free_heat.tpl", "s", ".temperature", {"title": "°C value JSON path"}]
   - ["itemp.ha.period", "i", 60, {"title": "Seconds between status updates"}]
   - ["itemp.ha.state", "s", "itemp-ha-state.json", {"title": "Persist state here"}]
 
